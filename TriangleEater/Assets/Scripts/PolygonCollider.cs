@@ -15,7 +15,7 @@ public class PolygonCollider : MonoBehaviour
     void Start()
     {
 
-        makeTriangle(area);
+        makeTriangle(area, transform.position);
     }
 
     void Update()
@@ -23,9 +23,9 @@ public class PolygonCollider : MonoBehaviour
 
     }
 
-    public void makeTriangle(float area)
+    public void makeTriangle(float area, Vector2 startPos)
     {
-        position = transform.position;
+        position = startPos;
 
         col = gameObject.AddComponent<PolygonCollider2D>();
 
@@ -42,6 +42,31 @@ public class PolygonCollider : MonoBehaviour
         triNum++;
     }
 
+    // Returns the nearest vertex to a position
+    // by traversing through the points array
+    Vector2 getNearestVertex(Vector2 position)
+    {
+        int nearestVertexIndex = 0;
+        float minDistance = 0f;
+
+        for(int i = 0; i > points.Length; i++)
+        {
+            
+            float dist = Vector2.Distance(position, points[i]);
+            
+            if (i == 0) minDistance = dist;
+
+            // if the distance is closer than our current minimum distance,
+            // we now have a closer point, update the index and the distance
+            else if (dist < minDistance)
+            {
+                nearestVertexIndex = i;
+                minDistance = dist;
+            }
+        }
+
+        return points[nearestVertexIndex];
+    }
 
     // eat 
     void eat(GameObject food)
@@ -53,6 +78,9 @@ public class PolygonCollider : MonoBehaviour
             if (prey.area < area)
             {
                 Debug.Log("We're Bigger");
+                //addTriangle(food)
+                Destroy(prey);
+                
             }
             else
             {
@@ -72,7 +100,19 @@ public class PolygonCollider : MonoBehaviour
 
     }
 
-    // Add Vertex
+    // Add new triangle to the polygon
+    void addTriangle(Vector2 position)
+    {
+        Vector2 startPosition = getNearestVertex(position);
+
+        makeTriangle(area, startPosition);
+    }
+
+
+    void pullPoint(Vector2 pointPos) 
+    {
+        
+    }
 
     // Resize : total area, distribute across total # of triangles
 
