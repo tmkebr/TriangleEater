@@ -8,35 +8,61 @@ public class PolygonCollider : MonoBehaviour
     public float area;
     public int triNum;
 
-    private Vector2[] points = new Vector2[3];
+    private ArrayList pts = new ArrayList();
     private Vector2 position;
     public PolygonCollider2D col;
 
-    void Start()
-    {
+    public bool firstTriangleMade;
 
-        makeTriangle(area, transform.position);
+    void OnValidate()
+    {
+        col = gameObject.GetComponent<PolygonCollider2D>();
+
+        if (!firstTriangleMade || col == null) makeFirstTriangle(area, transform.position);
     }
 
+    // Update is called once per frame
     void Update()
     {
-
+        col.isTrigger = false;
     }
 
-    public void makeTriangle(float area, Vector2 startPos)
+    public void makeFirstTriangle(float area, Vector2 startPos)
     {
-        position = startPos;
+        //position = startPos;
+        Debug.Log(startPos);
 
         col = gameObject.AddComponent<PolygonCollider2D>();
 
         // create the points for an equallateral triangle
-        points[0] = position;
-        points[1] = (new Vector2(position.x + 2 * area, position.y));
-        points[2] = (new Vector2(position.x + area, position.y + (area * Mathf.Sqrt(3))));
+        pts.Add(startPos);
+        pts.Add((new Vector2(startPos.x + 2 * area, startPos.y)));
+        pts.Add((new Vector2(startPos.x + area, startPos.y + (area * Mathf.Sqrt(3)))));
 
         // update the points of the collider
-        col.points = points;
-        col.SetPath(0, points);
+        col.points = (Vector2[]) pts.ToArray(typeof(Vector2));
+        col.SetPath(0, col.points);
+
+        // increase the number of triangles
+        triNum++;
+        firstTriangleMade = true;
+    }
+
+    public void makeTriangle(float area, Vector2 vertex1, Vector2 vertex2, Vector2 vertex3)
+    {
+
+        //GameObject.Destroy(gameObject.GetComponent<PolygonCollider2D>());
+
+        col = gameObject.GetComponent<PolygonCollider2D>();
+
+        // create the points for a triangle
+        pts.Add(vertex1);
+        pts.Add(vertex2);
+        pts.Add(vertex3);
+
+        // update the points of the collider
+        col.points = (Vector2[])pts.ToArray(typeof(Vector2));
+        col.SetPath(0, col.points);
 
         // increase the number of triangles
         triNum++;
@@ -44,15 +70,17 @@ public class PolygonCollider : MonoBehaviour
 
     // Returns the nearest vertex to a position
     // by traversing through the points array
-    Vector2 getNearestVertex(Vector2 position)
+    Vector2[] getNearestEdge(Vector2 position)
     {
+        Vector2[] edgePoints = new Vector2[2];
         int nearestVertexIndex = 0;
+        int nearestVertexIndex2 = 0;
         float minDistance = 0f;
 
-        for(int i = 0; i > points.Length; i++)
+        for(int i = 0; i > pts.Count; i++)
         {
             
-            float dist = Vector2.Distance(position, points[i]);
+            float dist = Vector2.Distance(position, (Vector2) pts[i]);
             
             if (i == 0) minDistance = dist;
 
@@ -65,13 +93,35 @@ public class PolygonCollider : MonoBehaviour
             }
         }
 
-        return points[nearestVertexIndex];
+        minDistance = 0;
+        edgePoints[0] = (Vector2) pts[nearestVertexIndex];
+
+        for(int i = 0; i > pts.Count; i++)
+        {
+            float dist = Vector2.Distance(edgePoints[0], (Vector2) pts[i]);
+
+            if (i == 0) minDistance = dist;
+            if (i == nearestVertexIndex) continue;
+
+            // if the distance is closer than our current minimum distance,
+            // we now have a closer point, update the index and the distance
+            else if (dist < minDistance)
+            {
+                nearestVertexIndex2 = i;
+                minDistance = dist;
+            }
+        }
+
+        edgePoints[1] = (Vector2) pts[nearestVertexIndex2];
+
+        return edgePoints;
     }
 
     // eat 
     void eat(GameObject food)
     {
         PolygonCollider prey = food.GetComponent<PolygonCollider>();
+        Debug.Log("Found Prey");
         if (prey != null)
         {
 
@@ -79,7 +129,11 @@ public class PolygonCollider : MonoBehaviour
             {
                 Debug.Log("We're Bigger");
                 //addTriangle(food)
-                Destroy(prey);
+                addTriangle(prey.transform.position, prey.area);
+
+                Destroy(prey.gameObject);
+
+                
                 
             }
             else
@@ -92,6 +146,7 @@ public class PolygonCollider : MonoBehaviour
 
     void OnCollisionEnter2D(Collision2D coll)
     {
+        Debug.Log("I'm working");
         if (coll.gameObject.tag == "Enemy")
         {
             Debug.Log("Hit!");
@@ -101,18 +156,40 @@ public class PolygonCollider : MonoBehaviour
     }
 
     // Add new triangle to the polygon
-    void addTriangle(Vector2 position)
+    void addTriangle(Vector2 position, float area)
     {
-        Vector2 startPosition = getNearestVertex(position);
+        Vector2[] edgePts = getNearestEdge(position);
+        Vector2 triangleTip = getTriangleTip(edgePts, area);
 
-        makeTriangle(area, startPosition);
+        Debug.Log("Vertices: " + edgePts[0] + " " + edgePts[1] + " " + triangleTip);
+        makeTriangle(area, edgePts[0], edgePts[1], triangleTip);
     }
 
-
-    void pullPoint(Vector2 pointPos) 
+    Vector2 getTriangleTip(Vector2[] edgePts, float area)
     {
+        int playerLayerMask = 8;
+        Vector2 pt1 = edgePts[0];
+        Vector2 pt2 = edgePts[1];
+
+        float b = Vector2.Distance(pt1, pt2);
+
+        float h = (2 * area / b);
+
+        Vector2 midPt = new Vector2((pt1.x + pt2.x)/2, (pt1.y + pt2.y)/2);
+
+        Vector2 finalPt1 = new Vector2(midPt.x, midPt.y + h);
+        Vector2 finalPt2 = new Vector2(midPt.y, midPt.y - h);
+
+        Debug.Log("Midpoint y: " + midPt.y + "b: " + b + "h: " + h);
+
+        if (Physics2D.Raycast(finalPt1, Vector2.right, b, playerLayerMask)) return finalPt1;
+        else return finalPt2;
+    }
+
+    //void pullPoint(Vector2 pointPos) 
+    //{
         
-    }
+    //}
 
     // Resize : total area, distribute across total # of triangles
 

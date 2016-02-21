@@ -4,7 +4,7 @@ using System.Collections;
 public class CameraFollowTopDown : MonoBehaviour
 {
 
-    public CharacterController target; // the object to follow
+    public CharacterController2D target; // the object to follow
     public float verticalOffset; // how far to move the camera vertically when target moves outside the focus area
     public float lookAheadDstX; // how far to move the camera horizontally when the target moves outside the focus area
     public float lookSmoothTimeX; // how long it takes for the look ahead to take place

@@ -3,7 +3,7 @@ using System.Collections;
 
 
 [RequireComponent(typeof(Rigidbody2D))]
-public class CharacterController : MonoBehaviour {
+public class CharacterController2D : MonoBehaviour {
 
     [HideInInspector]
     public Vector2 playerInput;

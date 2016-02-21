@@ -1,4 +1,4 @@
 sceneSetups:
-- path: Assets/Scripts/Jello-Physics-master/Demo/StickyDemo/StickyDemo.unity
+- path: Assets/Scripts/Jello-Physics-master/Demo/SpiffyDemoScene/SpiffyDemoScene.unity
   isLoaded: 1
   isActive: 1

@@ -7,17 +7,15 @@ public class Enemy : PolygonCollider {
     private PolygonCollider enemCol;
 
 	// Use this for initialization
-	void Start () {
+	void OnValidate () {
 
         enemCol = GetComponent<PolygonCollider>();
 
         transform.tag = "Enemy";
 
-		enemCol.makeTriangle(area, transform.position);
+
+		if(!enemCol.firstTriangleMade) enemCol.makeFirstTriangle(area, transform.position);
 	}
 	
-	// Update is called once per frame
-	void Update () {
-	
-	}
+
 }
