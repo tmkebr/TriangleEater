@@ -13,7 +13,7 @@ public class Enemy : PolygonCollider {
 
         transform.tag = "Enemy";
 
-        enemCol.makeTriangle(area);
+		enemCol.makeTriangle(area, transform.position);
 	}
 	
 	// Update is called once per frame
