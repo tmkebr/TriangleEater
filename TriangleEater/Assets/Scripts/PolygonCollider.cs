@@ -8,7 +8,7 @@ public class PolygonCollider : MonoBehaviour
     public float area;
     public int triNum;
 
-    private ArrayList pts = new ArrayList();
+    private static ArrayList pts = new ArrayList();
     private Vector2 position;
     public PolygonCollider2D col;
 
@@ -186,6 +186,13 @@ public class PolygonCollider : MonoBehaviour
         else return finalPt2;
     }
 
+
+    void removeTriangle(Vector2 position)
+    {
+        Vector2[] edgePts = getNearestEdge(position);
+        
+
+    }
     //void pullPoint(Vector2 pointPos) 
     //{
         
