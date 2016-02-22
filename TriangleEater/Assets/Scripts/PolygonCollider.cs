@@ -74,10 +74,9 @@ public class PolygonCollider : MonoBehaviour
 	{
 		// New Code
 		// First, find the nearest point
-
 		int nearestPt = 0;
 		float minDistance = float.MaxValue;
-
+	
 		int count = 0;
 		foreach(Vector2 point in col.points)
 		{
@@ -167,7 +166,7 @@ public class PolygonCollider : MonoBehaviour
 				// Destroy the prey
                 Destroy(prey.gameObject);
 				// Add a new triangle
-				addTriangle(collisionPt, preyArea);
+				addTriangle(collisionPt, preyArea, preyPosition);
             }
             else
             {
@@ -194,7 +193,7 @@ public class PolygonCollider : MonoBehaviour
     }
 
     // Add new triangle to the polygon
-    void addTriangle(Vector2 position, float area)
+	void addTriangle(Vector2 position, float area, Vector2 preyPosition)
     {
 		// Find the index where we need to insert the new edge
 		int edgeIndex = getNearestEdge(position);
@@ -204,37 +203,49 @@ public class PolygonCollider : MonoBehaviour
 		for(int i = 0; i < col.points.Length ; i++){
 			pts.Add (col.points [i]);
 			if (i == edgeIndex) {
-				pts.Add(getTriangleTip(col.points[i] , col.points[(i + 1) % col.points.Length] , area));
+				pts.Add(getTriangleTip(col.points[i] ,
+					col.points[(i + 1) % col.points.Length] ,
+					area, preyPosition));
 			}
 		}
+			
+		PolygonCollider2D newCol = gameObject.AddComponent<PolygonCollider2D>();;
+		newCol.points = (Vector2[]) pts.ToArray(typeof(Vector2));
+		newCol.SetPath (0, newCol.points);
 
-		col.points = (Vector2[]) pts.ToArray(typeof(Vector2));
-
-		Debug.Log(edgeIndex);
-
+		col = newCol;
+	
 		// Vector2 triangleTip = getTriangleTip(edgePts, area);
 
         // Debug.Log("Vertices: " + edgePts[0] + " " + edgePts[1] + " " + triangleTip);
         // makeTriangle(area, edgePts[0], edgePts[1], triangleTip);
     }
 
-	Vector2 getTriangleTip(Vector2 pt1, Vector2 pt2, float area)
+	Vector2 getTriangleTip(Vector2 pt1, Vector2 pt2, float area, Vector2 position)
     {
-        int playerLayerMask = 8;
-
+		Debug.Log (pt1 + " " + pt2);
         float b = Vector2.Distance(pt1, pt2);
 
         float h = (2 * area / b);
 
         Vector2 midPt = new Vector2((pt1.x + pt2.x)/2, (pt1.y + pt2.y)/2);
 
-        Vector2 finalPt1 = new Vector2(midPt.x, midPt.y + h);
-        Vector2 finalPt2 = new Vector2(midPt.y, midPt.y - h);
+		// We need to find the perpendicular bisector of the triangle
+		Vector2 perp = (pt1 - pt2);
+		perp.Normalize();
+		perp = h * perp;
 
-        Debug.Log("Midpoint y: " + midPt.y + "b: " + b + "h: " + h);
+		Vector2 finalPt1 = new Vector2(midPt.x + perp.y, midPt.y - perp.x);
+		Vector2 finalPt2 = new Vector2(midPt.x - perp.y, midPt.y + perp.x);
 
-        if (Physics2D.Raycast(finalPt1, Vector2.right, b, playerLayerMask)) return finalPt1;
-        else return finalPt2;
+		// Debug.Log("Midpoint y: " + midPt.y + "b: " + b + "h: " + h);
+
+		if (Vector2.Distance (finalPt1, position) < Vector2.Distance (finalPt2, position)) {
+			return finalPt1;
+		} else {
+			return finalPt2;
+		}
+
     }
 
     //void pullPoint(Vector2 pointPos) 
