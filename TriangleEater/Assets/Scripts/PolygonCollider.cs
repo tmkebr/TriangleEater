@@ -8,7 +8,7 @@ public class PolygonCollider : MonoBehaviour
     public float area;
     public int triNum;
 
-    private ArrayList pts = new ArrayList();
+	private ArrayList pts = new ArrayList();
     private Vector2 position;
     public PolygonCollider2D col;
 
@@ -70,14 +70,42 @@ public class PolygonCollider : MonoBehaviour
 
     // Returns the nearest vertex to a position
     // by traversing through the points array
-    Vector2[] getNearestEdge(Vector2 position)
-    {
-        Vector2[] edgePoints = new Vector2[2];
+    int getNearestEdge(Vector2 position)
+	{
+		// New Code
+		// First, find the nearest point
+
+		int nearestPt = 0;
+		float minDistance = float.MaxValue;
+
+		int count = 0;
+		foreach(Vector2 point in col.points)
+		{
+			if (Vector2.Distance(position, point) < minDistance) {
+				nearestPt = count;
+				minDistance = Vector2.Distance(position, point);
+			}
+			count++;
+		}
+
+		// Now that we have the nearest pt. Check the two points next to it
+		// to find the nearest edge
+		Vector2 vertex1 = (Vector2) col.points[(nearestPt + col.points.Length - 1) % col.points.Length];
+		Vector2 vertex2 = (Vector2) col.points[(nearestPt + 1) % col.points.Length];
+
+		if (Vector2.Distance (vertex1, position) < Vector2.Distance (vertex2, position)) {
+			return (nearestPt + col.points.Length - 1) % col.points.Length;
+		} else {
+			return nearestPt;
+		}
+
+		/* Old Code
+		Vector2[] edgePoints = new Vector2[2];
         int nearestVertexIndex = 0;
         int nearestVertexIndex2 = 0;
         float minDistance = 0f;
 
-        for(int i = 0; i > pts.Count; i++)
+        for(int i = 0; i < pts.Count; i++)
         {
             
             float dist = Vector2.Distance(position, (Vector2) pts[i]);
@@ -115,13 +143,15 @@ public class PolygonCollider : MonoBehaviour
         edgePoints[1] = (Vector2) pts[nearestVertexIndex2];
 
         return edgePoints;
+        */
     }
 
     // eat 
-    void eat(GameObject food)
+	void eat(GameObject food, Vector2 collisionPt)
     {
         PolygonCollider prey = food.GetComponent<PolygonCollider>();
         Debug.Log("Found Prey");
+
         if (prey != null)
         {
 
@@ -129,12 +159,15 @@ public class PolygonCollider : MonoBehaviour
             {
                 Debug.Log("We're Bigger");
                 //addTriangle(food)
-                addTriangle(prey.transform.position, prey.area);
 
+				// Save the prey's area and position
+				float preyArea = prey.area;
+				Vector2 preyPosition = prey.transform.position;
+
+				// Destroy the prey
                 Destroy(prey.gameObject);
-
-                
-                
+				// Add a new triangle
+				addTriangle(collisionPt, preyArea);
             }
             else
             {
@@ -150,7 +183,12 @@ public class PolygonCollider : MonoBehaviour
         if (coll.gameObject.tag == "Enemy")
         {
             Debug.Log("Hit!");
-            eat(coll.collider.gameObject);
+
+			// Save the point of collision
+			Vector2 collisionPt = coll.contacts[0].point;
+			// Enter "eat" at the collisionPoint
+			// with the Enemy
+			eat(coll.collider.gameObject, collisionPt);
         }
 
     }
@@ -158,18 +196,31 @@ public class PolygonCollider : MonoBehaviour
     // Add new triangle to the polygon
     void addTriangle(Vector2 position, float area)
     {
-        Vector2[] edgePts = getNearestEdge(position);
-        Vector2 triangleTip = getTriangleTip(edgePts, area);
+		// Find the index where we need to insert the new edge
+		int edgeIndex = getNearestEdge(position);
+		// Clear the ArrayList where we'll be saving the points
+		pts.Clear();
 
-        Debug.Log("Vertices: " + edgePts[0] + " " + edgePts[1] + " " + triangleTip);
-        makeTriangle(area, edgePts[0], edgePts[1], triangleTip);
+		for(int i = 0; i < col.points.Length ; i++){
+			pts.Add (col.points [i]);
+			if (i == edgeIndex) {
+				pts.Add(getTriangleTip(col.points[i] , col.points[(i + 1) % col.points.Length] , area));
+			}
+		}
+
+		col.points = (Vector2[]) pts.ToArray(typeof(Vector2));
+
+		Debug.Log(edgeIndex);
+
+		// Vector2 triangleTip = getTriangleTip(edgePts, area);
+
+        // Debug.Log("Vertices: " + edgePts[0] + " " + edgePts[1] + " " + triangleTip);
+        // makeTriangle(area, edgePts[0], edgePts[1], triangleTip);
     }
 
-    Vector2 getTriangleTip(Vector2[] edgePts, float area)
+	Vector2 getTriangleTip(Vector2 pt1, Vector2 pt2, float area)
     {
         int playerLayerMask = 8;
-        Vector2 pt1 = edgePts[0];
-        Vector2 pt2 = edgePts[1];
 
         float b = Vector2.Distance(pt1, pt2);
 
